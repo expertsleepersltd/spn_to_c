@@ -241,6 +241,11 @@ public:
 		a = acc;
 		acc *= b;
 	}
+	inline __attribute__((always_inline))	void	wrax( int a, float b )
+	{
+		state->registers[a] = acc;
+		acc *= b;
+	}
 	inline __attribute__((always_inline))	void	wrhx( float& a, float b, float pacc )
 	{
 		a = acc;
