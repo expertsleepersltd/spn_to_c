@@ -116,6 +116,10 @@ with open( filename, 'r' ) as F:
 						line = 'if ( e.acc < 0 ) '
 					elif args[0].lower() == 'run':
 						line = 'if ( state->run ) '
+					elif args[0].lower() == 'zrc':
+						line = 'if ( ( e.acc * pacc ) < 0 ) '
+						pacc = True
+						anyPacc = True
 					else:
 						raise Exception( 'cannot parse skp condition: ' + args[0] )
 					label = args[1]
@@ -168,6 +172,7 @@ with open( filename, 'r' ) as F:
 						line = 'e.cho_rda( cho_' + lfo + ',' + flags + ', downcounter + ' + m + ' );'
 						anyDel = True
 					elif args[0].lower() == 'rdal':
+						lfo = lfo.replace( 'cos', 'sin' )
 						line = 'e.cho_rdal( ' + checkRegisterName( lfo ) + ' );'
 					elif args[0].lower() == 'sof':
 						flags = choFlags( args[2] )
