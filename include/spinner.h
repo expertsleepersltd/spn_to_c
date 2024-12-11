@@ -202,15 +202,13 @@ public:
 	{
 		if ( n )
 		{
-			state->rmp1_rate = f;
+			state->rmp1_rate = f/16384.0f;
 			state->rmp1_range = a;
-			state->rmp1_rateMul = -1.0f/a;
 		}
 		else
 		{
-			state->rmp0_rate = f;
+			state->rmp0_rate = f/16384.0f;
 			state->rmp0_range = a;
-			state->rmp0_rateMul = -1.0f/a;
 		}
 	}
 	inline __attribute__((always_inline))	void 	wlds( int n, float f, float a )
@@ -298,7 +296,7 @@ public:
 
 	inline __attribute__((always_inline))	void	update_rmp0(void)
 	{
-	    state->rmp0 += state->rmp0_rate * state->rmp0_rateMul;
+	    state->rmp0 -= state->rmp0_rate * (1.0f/4096);
 	    while ( state->rmp0 >= 1 )
 	    	state->rmp0 -= 1;
 	    while ( state->rmp0 < 0 )
@@ -306,7 +304,7 @@ public:
 	}
 	inline __attribute__((always_inline))	void	update_rmp1(void)
 	{
-	    state->rmp1 += state->rmp1_rate * state->rmp1_rateMul;
+	    state->rmp1 -= state->rmp1_rate * (1.0f/4096);
 	    while ( state->rmp1 >= 1 )
 	    	state->rmp1 -= 1;
 	    while ( state->rmp1 < 0 )

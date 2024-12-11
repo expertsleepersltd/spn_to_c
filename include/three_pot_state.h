@@ -94,9 +94,7 @@ struct _state
 	};
 	
 	float			rmp0;
-	float			rmp0_rateMul;
 	float			rmp1;
-	float			rmp1_rateMul;
 	float			sin0;
 	float			cos0;
 	float			sin0_t;
