@@ -16,6 +16,7 @@
 '''
 
 import sys
+import re
 
 filename = sys.argv[1]
 
@@ -60,6 +61,22 @@ def checkRegisterName( x ):
 	if x.isnumeric():
 		return 'state->registers[' + x + ']'
 	return x
+
+def parseAddress( mm ):
+	try:
+		bits = re.split( '([\\+-])', mm, 1 )
+		m = bits[0]
+		if m.endswith( '#' ):
+			m = m[:-1]
+			sz = mem[m][0]
+			m += '+' + str( sz ) + '-1'
+		elif m.endswith( '^' ):
+			m = m[:-1]
+			sz = mem[m][0]
+			m += '+((' + str( sz ) + ')/2)'
+		return m + ''.join( bits[1:] )
+	except:
+		raise Exception( 'unable to parse address ' + mm + ':' + str( mem ) )
 
 anyDel = False
 anyPacc = False
@@ -135,28 +152,8 @@ with open( filename, 'r' ) as F:
 					line = 'e.' + opcode + '( ' + ','.join( args ) + ' );'
 				elif opcode in [ 'rda', 'wra', 'wrap' ]:
 					args = ''.join(toks[1:]).split( ',' )
-					m = args[0]
-					mod = 0
-					if '-' in m:
-						bits = m.split( '-', 1 )
-						m = bits[0]
-						mod = -int( bits[1] )
-					elif '+' in m:
-						bits = m.split( '+', 1 )
-						m = bits[0]
-						mod = int( bits[1] )
-					if m.endswith( '#' ):
-						m = m[:-1]
-						sz = int( mem[m][0] )
-						offset = sz - 1
-					elif m.endswith( '^' ):
-						m = m[:-1]
-						sz = int( mem[m][0] )
-						offset = int( sz / 2 )
-					else:
-						offset = 0
-					offset += mod
-					addr = 'state->delay_ptr[ ( downcounter + ' + m + ' + ' + str( offset ) + ' + 32768 ) & 32767 ]'
+					m = parseAddress( args[0] )
+					addr = 'state->delay_ptr[ ( downcounter + ' + m + ' + 32768 ) & 32767 ]'
 					line = 'e.' + opcode + '( ' + addr + ',' + args[1] + ' );'
 					anyDel = True
 				elif opcode == 'cho':
@@ -167,7 +164,8 @@ with open( filename, 'r' ) as F:
 							args.append( args[2] )
 							args[2] = ''
 						flags = choFlags( args[2] )
-						line = 'e.cho_rda( cho_' + lfo + ',' + flags + ', downcounter+' + args[3] + ' );'
+						m = parseAddress( args[3] )
+						line = 'e.cho_rda( cho_' + lfo + ',' + flags + ', downcounter + ' + m + ' );'
 						anyDel = True
 					elif args[0].lower() == 'rdal':
 						line = 'e.cho_rdal( ' + checkRegisterName( lfo ) + ' );'
