@@ -27,33 +27,26 @@ number = 1
 usedLabels = []
 usedLFOs = []
 
-defines.append( '#define rmp0_rate (state->rmp0_rate)' )
-defines.append( '#define rmp1_rate (state->rmp1_rate)' )
-defines.append( '#define sin0_rate (state->sin0_rate)' )
-defines.append( '#define sin1_rate (state->sin1_rate)' )
-defines.append( '#define sin0_range (state->sin0_range)' )
-defines.append( '#define sin1_range (state->sin1_range)' )
-defines.append( '#define pot0 state->pot0' )
-defines.append( '#define pot1 state->pot1' )
-defines.append( '#define pot2 state->pot2' )
-defines.append( '#define adcl state->adcl' )
-defines.append( '#define adcr state->adcr' )
-defines.append( '#define dacl state->dacl' )
-defines.append( '#define dacr state->dacr' )
-defines.append( '#define addr_ptr state->addr_ptr' )
-defines.append( '#define ADCL adcl' )
-defines.append( '#define ADCR adcr' )
-defines.append( '#define POT0 pot0' )
-defines.append( '#define POT1 pot1' )
-defines.append( '#define POT2 pot2' )
+register_names = [ 'pot0', 'pot1', 'pot2', 'adcl', 'adcr', 'dacl', 'dacr', 'addr_ptr', 'rmp0_rate', 'rmp1_rate', 'sin0_rate', 'sin1_rate', 'sin0_range', 'sin1_range', 'sin0', 'sin1', 'rmp0', 'rmp1' ]
+
+for r in register_names:
+	defines.append( f'#define {r} (state->{r})' )
+	u = r.upper()
+	defines.append( f'#define {u} {r}' )
+
+for r in range(32):
+	defines.append( f'#define reg{r} (state->reg{r})' )
+	defines.append( f'#define REG{r} reg{r}' )
 
 def choFlags( x ):
 	bits = []
 	for b in x.split('|'):
 		if b.startswith( '0x' ) or b.isnumeric():
 			bits.append( b )
+		elif len(b) == 0:
+			bits.append( '0' )
 		else:
-			bits.append( 'cho_' + b )
+			bits.append( 'cho_' + b.lower() )
 	return '|'.join( bits )
 
 def convertArg( x ):
@@ -61,9 +54,12 @@ def convertArg( x ):
 		return '0b' + x[1:].replace( '_', '' )
 	if x.startswith( '$' ):
 		return '0x' + x[1:]
-	if x.startswith( 'reg' ):
-		return 'state->' + x
 	return x.replace( '/', '/(float)' )
+
+def checkRegisterName( x ):
+	if x.isnumeric():
+		return 'state->registers[' + x + ']'
+	return x
 
 anyDel = False
 anyPacc = False
@@ -77,15 +73,17 @@ with open( filename, 'r' ) as F:
 		comments = ''
 		if len( bits ) > 1:
 			comments = '\t\t// ' + bits[1]
+		if len( toks ) == 3 and toks[1].lower() == 'equ':
+			toks[1] = toks[0]
+			toks[0] = 'equ'
+		if len( toks ) == 3 and toks[1].lower() == 'mem':
+			toks[1] = toks[0]
+			toks[0] = 'mem'
 		if len( toks ):
 			opcode = toks[0].lower()
 			if opcode == 'equ':
-				if toks[2].startswith( 'reg' ):
-					line = '#define ' + toks[1] + ' (state->' + toks[2] + ')'
-					declarations.append( line + comments )
-				else:
-					line = '#define ' + toks[1] + ' (' + toks[2] + ')'
-					defines.append( line + comments )
+				line = '#define ' + toks[1] + ' (' + toks[2] + ')'
+				defines.append( line + comments )
 			elif opcode == 'mem':
 				mem[ toks[1] ] = [ toks[2], comments ]
 			else:
@@ -110,19 +108,18 @@ with open( filename, 'r' ) as F:
 						pass
 					usedLabels.append( label )
 					line += 'goto l' + str( label ) + ';'
-				elif opcode in [ 'rdax', 'wrax', 'mulx', 'rdfx', 'log', 'exp', 'sof', 'ldax', 'absa', 'and', 'or', 'rmpa', 'maxx' ]:
+				elif opcode in [ 'rdax', 'wrax', 'mulx', 'rdfx', 'log', 'exp', 'sof', 'ldax', 'absa', 'and', 'or', 'xor', 'rmpa', 'maxx' ]:
 					args = ''.join(toks[1:]).split( ',' )
 					args = [ convertArg( a ) for a in args ]
-					if opcode.endswith( 'x' ) and args[0].isnumeric():
-						args[0] = 'state->registers[' + args[0] + ']'
-					if opcode in [ 'and', 'or' ]:
+					if opcode.endswith( 'x' ):
+						args[0] = checkRegisterName( args[0] )
+					if opcode in [ 'and', 'or', 'xor' ]:
 						opcode = 'bitwise_' + opcode
 					line = 'e.' + opcode + '( ' + ','.join( args ) + ' );'
 				elif opcode in [ 'wrhx', 'wrlx' ]:
 					args = ''.join(toks[1:]).split( ',' )
 					args = [ convertArg( a ) for a in args ]
-					if opcode.endswith( 'x' ) and args[0].isnumeric():
-						args[0] = 'state->registers[' + args[0] + ']'
+					args[0] = checkRegisterName( args[0] )
 					line = 'e.' + opcode + '( ' + ','.join( args ) + ',pacc );'
 					pacc = True
 					anyPacc = True
@@ -155,22 +152,25 @@ with open( filename, 'r' ) as F:
 					elif m.endswith( '^' ):
 						m = m[:-1]
 						sz = int( mem[m][0] )
-						offset = sz / 2
+						offset = int( sz / 2 )
 					else:
 						offset = 0
 					offset += mod
-					addr = 'state->delay_ptr[ ( del + ' + m + ' + ' + str( offset ) + ' + 32768 ) & 32767 ]'
+					addr = 'state->delay_ptr[ ( downcounter + ' + m + ' + ' + str( offset ) + ' + 32768 ) & 32767 ]'
 					line = 'e.' + opcode + '( ' + addr + ',' + args[1] + ' );'
 					anyDel = True
 				elif opcode == 'cho':
 					args = ''.join(toks[1:]).split( ',' )
 					lfo = args[1].lower()
 					if args[0].lower() == 'rda':
+						if len(args) < 4:
+							args.append( args[2] )
+							args[2] = ''
 						flags = choFlags( args[2] )
-						line = 'e.cho_rda( cho_' + lfo + ',' + flags + ', del+' + args[3] + ' );'
+						line = 'e.cho_rda( cho_' + lfo + ',' + flags + ', downcounter+' + args[3] + ' );'
 						anyDel = True
 					elif args[0].lower() == 'rdal':
-						line = 'e.cho_rdal( state->' + lfo + ' );'
+						line = 'e.cho_rdal( ' + checkRegisterName( lfo ) + ' );'
 					elif args[0].lower() == 'sof':
 						flags = choFlags( args[2] )
 						line = 'e.cho_sof( cho_' + lfo + ',' + flags + ', ' + args[3] + ' );'
@@ -179,14 +179,16 @@ with open( filename, 'r' ) as F:
 					usedLFOs.append( lfo )
 				elif opcode in [ 'clr' ]:
 					line = 'e.' + opcode + '();'
+				elif opcode in [ 'jam' ]:
+					line = 'e.' + opcode + '( jam_' + toks[1] + ' );'
 				elif opcode.endswith( ':' ):
 					line = 'l' + toks[0]
 				else:
 					raise Exception( 'unknown opcode: ' + opcode )
-				code.append( [ number, line + comments, pacc ] )
+				code.append( [ number, line, comments, pacc ] )
 				number += 1
 		else:
-				code.append( [ -1, comments, False ] )
+				code.append( [ -1, '', comments, False ] )
 
 print( '#include <spinner.h>' )
 print( 'using namespace _three_pot;' )
@@ -206,7 +208,7 @@ print( 'void process( _three_pot::_state* state ) {' )
 
 print( '    _spinner e( state );' )
 if anyDel:
-	print( '    uint32_t del = state->del;' )
+	print( '    uint32_t downcounter = state->downcounter;' )
 if anyPacc:
 	print( '    float pacc;' )
 
@@ -214,10 +216,13 @@ for i in range( len( code ) ):
 	x = code[i]
 	if x[0] in usedLabels:
 		print( 'l' + str( x[0] ) + ':' )
+	elif x[1].endswith( ':' ):
+		if x[1][1:-1] not in usedLabels:
+			continue
 	if i < len( code ) - 1:
-		if code[i+1][2]:
+		if code[i+1][3]:
 			print( '    pacc = e.acc;' )
-	print( '    ' + x[1] )
+	print( '    ' + x[1] + x[2] )
 
 for lfo in [ 'rmp0', 'rmp1', 'sin0', 'sin1' ]:
 	if lfo in usedLFOs:

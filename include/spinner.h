@@ -56,6 +56,7 @@ inline __attribute__((always_inline)) float f_abs( float x )
 
 enum
 {
+	cho_sin = 0,
 	cho_cos = 1,
 	cho_reg = 2,
 	cho_compc = 4,
@@ -74,6 +75,14 @@ enum _cho_lfo
 	cho_1 = 1,
 	cho_2 = 2,
 	cho_3 = 3,
+};
+
+enum _jam
+{
+	jam_0 = 0,
+	jam_1 = 1,
+	jam_rmp0 = 0,
+	jam_rmp1 = 1,
 };
 
 class _spinner
@@ -182,7 +191,7 @@ public:
 	inline __attribute__((always_inline))	void	rmpa( float a )
 	{
 		uint32_t index = (uint32_t)( state->addr_ptr * (1<<15) ) & 0x7fff;
-		lr = state->delay_ptr[ ( index + state->del ) & 32767 ];
+		lr = state->delay_ptr[ ( index + state->downcounter ) & 32767 ];
 		acc += a * lr;
 	}
 	inline __attribute__((always_inline))	void	sof( float a, float b )
@@ -272,6 +281,19 @@ public:
 	{
 		uint32_t x = to_bits( acc );
 		acc = from_bits( x | a );
+	}
+	inline __attribute__((always_inline))	void	bitwise_xor( uint32_t a )
+	{
+		uint32_t x = to_bits( acc );
+		acc = from_bits( x ^ a );
+	}
+	
+	inline __attribute__((always_inline))	void	jam( _jam a )
+	{
+		if ( a )
+			state->rmp1 = 0;
+		else
+			state->rmp0 = 0;
 	}
 
 	inline __attribute__((always_inline))	void	update_rmp0(void)

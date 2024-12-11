@@ -30,7 +30,7 @@ struct _state
 	float			(*exp2)(float);
 	float			(*log2)(float);
 	
-	uint32_t 		del;
+	uint32_t 		downcounter;
 	uint32_t		run;
 	float			sin_rateMul;
 	
