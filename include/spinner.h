@@ -66,10 +66,14 @@ enum
 
 enum _cho_lfo
 {
-	cho_sin0,
-	cho_sin1,
-	cho_rmp0,
-	cho_rmp1,
+	cho_sin0 = 0,
+	cho_sin1 = 1,
+	cho_rmp0 = 2,
+	cho_rmp1 = 3,
+	cho_0 = 0,
+	cho_1 = 1,
+	cho_2 = 2,
+	cho_3 = 3,
 };
 
 class _spinner

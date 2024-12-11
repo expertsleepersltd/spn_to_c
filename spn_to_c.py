@@ -78,7 +78,7 @@ with open( filename, 'r' ) as F:
 		if len( bits ) > 1:
 			comments = '\t\t// ' + bits[1]
 		if len( toks ):
-			opcode = toks[0]
+			opcode = toks[0].lower()
 			if opcode == 'equ':
 				if toks[2].startswith( 'reg' ):
 					line = '#define ' + toks[1] + ' (state->' + toks[2] + ')'
@@ -113,12 +113,16 @@ with open( filename, 'r' ) as F:
 				elif opcode in [ 'rdax', 'wrax', 'mulx', 'rdfx', 'log', 'exp', 'sof', 'ldax', 'absa', 'and', 'or', 'rmpa', 'maxx' ]:
 					args = ''.join(toks[1:]).split( ',' )
 					args = [ convertArg( a ) for a in args ]
+					if opcode.endswith( 'x' ) and args[0].isnumeric():
+						args[0] = 'state->registers[' + args[0] + ']'
 					if opcode in [ 'and', 'or' ]:
 						opcode = 'bitwise_' + opcode
 					line = 'e.' + opcode + '( ' + ','.join( args ) + ' );'
 				elif opcode in [ 'wrhx', 'wrlx' ]:
 					args = ''.join(toks[1:]).split( ',' )
 					args = [ convertArg( a ) for a in args ]
+					if opcode.endswith( 'x' ) and args[0].isnumeric():
+						args[0] = 'state->registers[' + args[0] + ']'
 					line = 'e.' + opcode + '( ' + ','.join( args ) + ',pacc );'
 					pacc = True
 					anyPacc = True
@@ -176,7 +180,7 @@ with open( filename, 'r' ) as F:
 				elif opcode in [ 'clr' ]:
 					line = 'e.' + opcode + '();'
 				elif opcode.endswith( ':' ):
-					line = 'l' + opcode
+					line = 'l' + toks[0]
 				else:
 					raise Exception( 'unknown opcode: ' + opcode )
 				code.append( [ number, line + comments, pacc ] )
