@@ -161,11 +161,14 @@ public:
 	}
 	inline __attribute__((always_inline))	void	exp( float a, float b )
 	{
-		acc = state->exp2( acc * 16 ) * a + b;
+		float x = std::min( acc, 0.0f );
+		acc = state->exp2( x * 16 ) * a + b;
 	}
 	inline __attribute__((always_inline))	void	log( float a, float b )
 	{
-		acc = a * state->log2( f_abs( acc ) ) * (1.0f/16) + b;
+		float x = f_abs( acc );
+		x = std::min( std::max( x, 0.00001526f ), 0.99999988f );
+		acc = a * state->log2( x ) * (1.0f/16) + b;
 	}
 	inline __attribute__((always_inline))	void	maxx( float a, float b )
 	{
