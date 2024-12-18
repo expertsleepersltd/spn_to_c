@@ -20,6 +20,8 @@
 
 #include <stdint.h>
 
+#define THREE_POT_ABI_VERSION 2
+
 namespace _three_pot
 {
 
@@ -32,7 +34,6 @@ struct _state
 	
 	uint32_t 		downcounter;
 	uint32_t		run;
-	float			sin_rateMul;
 	
 	union
 	{
@@ -97,10 +98,8 @@ struct _state
 	float			rmp1;
 	float			sin0;
 	float			cos0;
-	float			sin0_t;
 	float			sin1;
 	float			cos1;
-	float			sin1_t;
 };
 
 typedef void (process)( _state* state );

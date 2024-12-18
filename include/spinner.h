@@ -24,25 +24,6 @@
 namespace _three_pot
 {
 
-inline __attribute__((always_inline))	float Sin01( float t )
-{
-	t = std::max( -t, std::min( 1.0f - t, t - 0.5f ) );
-
-	float t2 = t  * t;
-	float t3 = t  * t2;
-	float t5 = t2 * t3;
-	float t7 = t2 * t5;
-	float t9 = t2 * t7;
-
-	float r = t  * (float)(-6.283185307179586);
-	r =   r + t3 * (float)(248.0502134423985 * 0.16666657);
-	r =   r + t5 * (float)(9792.629913129005 * -8.3330255e-003);
-	r =   r + t7 * (float)(386597.5331554293 * 1.9807414e-004);
-	r =   r + t9 * (float)(15262258.85872445 * -2.601887e-006);
-
-	return r;
-}
-
 inline __attribute__((always_inline)) float f_abs( float x )
 {
 #ifdef __arm__
@@ -167,7 +148,9 @@ public:
 	inline __attribute__((always_inline))	void	log( float a, float b )
 	{
 		float x = f_abs( acc );
+#ifdef SPINNER_RANGE_LIMIT_LOG
 		x = std::min( std::max( x, 0.00001526f ), 0.99999988f );
+#endif
 		acc = a * state->log2( x ) * (1.0f/16) + b;
 	}
 	inline __attribute__((always_inline))	void	maxx( float a, float b )
@@ -320,27 +303,19 @@ public:
 	}
 	inline __attribute__((always_inline))	void	update_sin0(void)
 	{
-	    state->sin0_t += state->sin0_rate * state->sin_rateMul;
-	    while ( state->sin0_t >= 1 )
-	    	state->sin0_t -= 1;
-	    while ( state->sin0_t < 0 )
-	    	state->sin0_t += 1;
-	    float s = Sin01( state->sin0_t );
-	    float c = Sin01( state->sin0_t + 0.25f );
-	    state->sin0 = s;
-	    state->cos0 = c;
+		float x = state->sin0_rate * (1.0f/256);
+		float s = state->sin0;
+		float c = state->cos0;
+	    state->cos0 += x * s;
+	    state->sin0 -= x * c;
 	}
 	inline __attribute__((always_inline))	void	update_sin1(void)
 	{
-	    state->sin1_t += state->sin1_rate * state->sin_rateMul;
-	    while ( state->sin1_t >= 1 )
-	    	state->sin1_t -= 1;
-	    while ( state->sin1_t < 0 )
-	    	state->sin1_t += 1;
-	    float s = Sin01( state->sin1_t );
-	    float c = Sin01( state->sin1_t + 0.25f );
-	    state->sin1 = s;
-	    state->cos1 = c;
+		float x = state->sin1_rate * (1.0f/256);
+		float s = state->sin1;
+		float c = state->cos1;
+	    state->cos1 += x * s;
+	    state->sin1 -= x * c;
 	}
 };
 
