@@ -28,7 +28,7 @@ number = 1
 usedLabels = []
 usedLFOs = []
 
-register_names = [ 'pot0', 'pot1', 'pot2', 'adcl', 'adcr', 'dacl', 'dacr', 'addr_ptr', 'rmp0_rate', 'rmp1_rate', 'sin0_rate', 'sin1_rate', 'sin0_range', 'sin1_range', 'sin0', 'sin1', 'rmp0', 'rmp1' ]
+register_names = [ 'pot0', 'pot1', 'pot2', 'adcl', 'adcr', 'dacl', 'dacr', 'addr_ptr', 'rmp0_rate', 'rmp1_rate', 'rmp0_range', 'rmp1_range', 'sin0_rate', 'sin1_rate', 'sin0_range', 'sin1_range', 'sin0', 'sin1', 'rmp0', 'rmp1', 'cos0', 'cos1' ]
 
 for r in register_names:
 	defines.append( f'#define {r} (state->{r})' )
@@ -61,6 +61,11 @@ def checkRegisterName( x ):
 	if x.isnumeric():
 		return 'state->registers[' + x + ']'
 	return x
+
+def checkLfoName( x ):
+	if x.isnumeric():
+		return [ 'sin0', 'sin1', 'rmp0', 'rmp1', 'cos0', 'cos1', 'error', 'error', 'cos0', 'cos1' ][ int(x) ]
+	return x	
 
 def parseAddress( mm ):
 	try:
@@ -162,7 +167,8 @@ with open( filename, 'r' ) as F:
 					anyDel = True
 				elif opcode == 'cho':
 					args = ''.join(toks[1:]).split( ',' )
-					lfo = args[1].lower()
+					lfo = checkLfoName( args[1].lower() )
+					lfo_range = lfo.replace( 'cos', 'sin' ) + '_range'
 					if args[0].lower() == 'rda':
 						if len(args) < 4:
 							args.append( args[2] )
@@ -172,14 +178,13 @@ with open( filename, 'r' ) as F:
 						line = 'e.cho_rda( cho_' + lfo + ',' + flags + ', downcounter + ' + m + ' );'
 						anyDel = True
 					elif args[0].lower() == 'rdal':
-						lfo = lfo.replace( 'cos', 'sin' )
-						line = 'e.cho_rdal( ' + checkRegisterName( lfo ) + ' );'
+						line = f'e.cho_rdal( {lfo} * {lfo_range} );'
 					elif args[0].lower() == 'sof':
 						flags = choFlags( args[2] )
 						line = 'e.cho_sof( cho_' + lfo + ',' + flags + ', ' + args[3] + ' );'
 					else:
 						raise Exception( 'unknown cho: ' + args[0] )
-					usedLFOs.append( lfo )
+					usedLFOs.append( lfo.replace( 'cos', 'sin' ) )
 				elif opcode in [ 'clr' ]:
 					line = 'e.' + opcode + '();'
 				elif opcode in [ 'jam' ]:

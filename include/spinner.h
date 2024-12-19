@@ -82,9 +82,10 @@ public:
 		float lfo_in =  ( which == cho_sin0 ) ? ( ( flags & cho_cos ) ? state->cos0 : state->sin0 ) : (
 						( which == cho_sin1 ) ? ( ( flags & cho_cos ) ? state->cos1 : state->sin1 ) : (
 						( which == cho_rmp0 ) ? state->rmp0 : state->rmp1 ) );
-		float range  =  ( which == cho_sin0 ) ? state->sin0_range * 8192.0f : (
-						( which == cho_sin1 ) ? state->sin1_range * 8192.0f : (
+		float range  =  ( which == cho_sin0 ) ? state->sin0_range : (
+						( which == cho_sin1 ) ? state->sin1_range : (
 						( which == cho_rmp0 ) ? state->rmp0_range : state->rmp1_range ) );
+		range *= 8192.0f;
 		if ( flags & cho_reg )
 			lfo = lfo_in;
 		float v = lfo;
@@ -124,6 +125,9 @@ public:
 		float lfo_in =  ( which == cho_sin0 ) ? ( ( flags & cho_cos ) ? state->cos0 : state->sin0 ) : (
 						( which == cho_sin1 ) ? ( ( flags & cho_cos ) ? state->cos1 : state->sin1 ) : (
 						( which == cho_rmp0 ) ? state->rmp0 : state->rmp1 ) );
+		float range  =  ( which == cho_sin0 ) ? state->sin0_range : (
+						( which == cho_sin1 ) ? state->sin1_range : (
+						( which == cho_rmp0 ) ? state->rmp0_range : state->rmp1_range ) );
 		if ( flags & cho_reg )
 			lfo = lfo_in;
 		float v = lfo;
@@ -132,6 +136,7 @@ public:
 			v = std::min( v, 1.0f - v );
 			v = std::max( 0.0f, std::min( 1.0f, 4 * v - 0.5f ) );
 		}
+		v *= range;
 		if ( flags & cho_compc )
 			v = 1 - v;
 		acc = v * acc + b;
@@ -189,12 +194,12 @@ public:
 		if ( n )
 		{
 			state->rmp1_rate = f/16384.0f;
-			state->rmp1_range = a;
+			state->rmp1_range = a/8192.0f;
 		}
 		else
 		{
 			state->rmp0_rate = f/16384.0f;
-			state->rmp0_range = a;
+			state->rmp0_range = a/8192.0f;
 		}
 	}
 	inline __attribute__((always_inline))	void 	wlds( int n, float f, float a )
