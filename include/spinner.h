@@ -136,7 +136,10 @@ public:
 			v = std::min( v, 1.0f - v );
 			v = std::max( 0.0f, std::min( 1.0f, 4 * v - 0.5f ) );
 		}
-		v *= range;
+		else
+		{
+			v *= range;
+		}
 		if ( flags & cho_compc )
 			v = 1 - v;
 		acc = v * acc + b;
