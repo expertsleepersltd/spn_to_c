@@ -192,6 +192,11 @@ public:
 	{
 		acc = a * acc + b;
 	}
+	inline __attribute__((always_inline))	void	sofc( float a, float b )
+	{
+		acc = a * acc + b;
+		acc = std::min( std::max( acc, -1.0f ), 0xffffff/(float)0x1000000 );
+	}
 	inline __attribute__((always_inline))	void 	wldr( int n, float f, float a )
 	{
 		if ( n )

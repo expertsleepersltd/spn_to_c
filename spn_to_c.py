@@ -69,7 +69,7 @@ def checkLfoName( x ):
 
 def parseAddress( mm ):
 	try:
-		bits = re.split( '([\\+-])', mm, 1 )
+		bits = re.split( '([\\+-])', mm, maxsplit=1 )
 		m = bits[0]
 		if m.endswith( '#' ):
 			m = m[:-1]
@@ -141,6 +141,15 @@ with open( filename, 'r' ) as F:
 						args[0] = checkRegisterName( args[0] )
 					if opcode in [ 'and', 'or', 'xor' ]:
 						opcode = 'bitwise_' + opcode
+					elif opcode == 'sof':
+						# this is a heuristic that makes many distortion/overdrive programs work
+						# use sof with clipping if the scale is > 1.0
+						try:
+							scale = float( args[0] )
+							if abs( scale ) > 1.0:
+								opcode = 'sofc'
+						except ValueError:
+							pass
 					line = 'e.' + opcode + '( ' + ','.join( args ) + ' );'
 				elif opcode in [ 'wrhx', 'wrlx' ]:
 					args = ''.join(toks[1:]).split( ',' )
